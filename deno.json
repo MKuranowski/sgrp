@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "bundle": "deno bundle main.ts main.js"
+    "bundle": "deno bundle sgrp.ts sgrp.js"
   },
   "compilerOptions": {
     "lib": ["dom", "deno.ns"]
