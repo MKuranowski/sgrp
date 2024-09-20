@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "bundle": "deno bundle main.ts main.js"
+  },
+  "compilerOptions": {
+    "lib": ["dom", "deno.ns"]
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1"
+  }
+}
