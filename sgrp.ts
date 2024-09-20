@@ -51,11 +51,62 @@ export const default_palette: Palette = {
     },
 };
 
-export function add(a: number, b: number): number {
-    return a + b;
+export class SGRParser implements Transformer<string, string> {
+    transform(chunk: string, controller: TransformStreamDefaultController<string>): void {
+        controller.enqueue(chunk);
+    }
 }
 
-// Learn more at https://docs.deno.com/runtime/manual/examples/module_metadata#concepts
-if (import.meta.main) {
-    console.log("Add 2 + 3 =", add(2, 3));
+/**
+ * StringChunkSource implements UnderlyingDefaultSource<string> over a constant string value.
+ * This makes it possible to jump-start a ReadableStream<string> using a single string.
+ */
+export class StringChunkSource implements UnderlyingDefaultSource<string> {
+    text: string;
+    offset: number = 0;
+
+    constructor(text: string) {
+        this.text = text;
+    }
+
+    pull(controller: ReadableStreamDefaultController<string>): void {
+        if (this.offset >= this.text.length) controller.close();
+
+        const size = controller.desiredSize;
+        if (size === null) {
+            controller.enqueue(this.text.slice(this.offset));
+            this.offset = this.text.length;
+        } else {
+            const end = Math.min(this.offset + size, this.text.length);
+            controller.enqueue(this.text.slice(this.offset, end));
+            this.offset = end;
+        }
+    }
+}
+
+/**
+ * StringChunkSink implements UnderlyingSink<string> by collecting all incoming strings
+ * into an array. This makes it possible to jump-start WritableString<string> by collecting
+ * all strings into memory.
+ */
+export class StringChunkSink implements UnderlyingSink<string> {
+    chunks: string[] = [];
+
+    write(chunk: string, _controller: WritableStreamDefaultController): void {
+        this.chunks.push(chunk);
+    }
+
+    toString(): string {
+        return this.chunks.join("");
+    }
+}
+
+export async function parse_sgr(x: string): Promise<string> {
+    const source = new StringChunkSource(x);
+    const parser = new SGRParser();
+    const sink = new StringChunkSink();
+    await (new ReadableStream(source)).pipeThrough(new TransformStream(parser)).pipeTo(
+        new WritableStream(sink),
+    );
+    return sink.toString();
 }

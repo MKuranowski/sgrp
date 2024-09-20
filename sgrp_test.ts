@@ -1,6 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { add } from "./sgrp.ts";
+import { parse_sgr } from "./sgrp.ts";
 
-Deno.test(function addTest() {
-    assertEquals(add(2, 3), 5);
-});
+Deno.test("passes text as-is", async () =>
+    assertEquals(await parse_sgr("hello, world!"), "hello, world!"));
