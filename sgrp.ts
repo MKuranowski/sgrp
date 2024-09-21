@@ -55,6 +55,10 @@ export class SGRParser implements Transformer<string, string> {
     transform(chunk: string, controller: TransformStreamDefaultController<string>): void {
         controller.enqueue(chunk);
     }
+
+    toStream(): TransformStream<string, string> {
+        return new TransformStream(this);
+    }
 }
 
 /**
@@ -82,6 +86,10 @@ export class StringChunkSource implements UnderlyingDefaultSource<string> {
             this.offset = end;
         }
     }
+
+    toStream(): ReadableStream<string> {
+        return new ReadableStream(this);
+    }
 }
 
 /**
@@ -96,6 +104,10 @@ export class StringChunkSink implements UnderlyingSink<string> {
         this.chunks.push(chunk);
     }
 
+    toStream(): WritableStream<string> {
+        return new WritableStream(this);
+    }
+
     toString(): string {
         return this.chunks.join("");
     }
@@ -105,8 +117,6 @@ export async function parse_sgr(x: string): Promise<string> {
     const source = new StringChunkSource(x);
     const parser = new SGRParser();
     const sink = new StringChunkSink();
-    await (new ReadableStream(source)).pipeThrough(new TransformStream(parser)).pipeTo(
-        new WritableStream(sink),
-    );
+    await source.toStream().pipeThrough(parser.toStream()).pipeTo(sink.toStream());
     return sink.toString();
 }
