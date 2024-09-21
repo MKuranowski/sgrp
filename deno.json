@@ -1,6 +1,7 @@
 {
   "tasks": {
-    "bundle": "deno bundle sgrp.ts sgrp.js"
+    "bundle": "deno bundle sgrp.ts sgrp.js",
+    "test_coverage": "deno test --coverage && deno coverage --html && xdg-open coverage/html/index.html"
   },
   "compilerOptions": {
     "lib": ["dom", "deno.ns"]

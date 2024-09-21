@@ -51,9 +51,198 @@ export const default_palette: Palette = {
     },
 };
 
+enum SGRParserState {
+    Text,
+    Esc,
+    Csi,
+}
+
+class SGRStyle {
+    fontWeight: "" | "bolder" = "";
+
+    copy(): SGRStyle {
+        const n = new SGRStyle();
+        n.fontWeight = this.fontWeight;
+        return n;
+    }
+
+    equals(o: SGRStyle): boolean {
+        return this.fontWeight === o.fontWeight;
+    }
+
+    isEmpty(): boolean {
+        return this.fontWeight === "";
+    }
+
+    toCssStyle(): string {
+        const parts = ['style="'];
+
+        if (this.fontWeight !== "") {
+            parts.push("font-weight:");
+            parts.push(this.fontWeight);
+            parts.push(";");
+        }
+
+        parts.push('"');
+        return parts.join("");
+    }
+}
+
 export class SGRParser implements Transformer<string, string> {
+    private static readonly csiArgLenLimit = 64;
+
+    #state: SGRParserState = SGRParserState.Text;
+    #csiArgs: string = "";
+    #csiCommand: string = "";
+
+    #inSpan: boolean = false;
+    #style: SGRStyle = new SGRStyle();
+
     transform(chunk: string, controller: TransformStreamDefaultController<string>): void {
-        controller.enqueue(chunk);
+        while (chunk.length > 0) {
+            switch (this.#state) {
+                case SGRParserState.Text:
+                    chunk = this.handleText(chunk, controller);
+                    break;
+                case SGRParserState.Esc:
+                    chunk = this.handleEsc(chunk, controller);
+                    break;
+                case SGRParserState.Csi:
+                    chunk = this.handleCsi(chunk, controller);
+                    break;
+            }
+        }
+    }
+
+    flush(controller: TransformStreamDefaultController<string>): void {
+        switch (this.#state) {
+            case SGRParserState.Text:
+                break; // nothing to do
+
+            case SGRParserState.Esc:
+                controller.enqueue("\x1B");
+                break;
+
+            case SGRParserState.Csi:
+                this.dumpUnknownCsi(controller);
+                break;
+        }
+
+        if (this.#inSpan) {
+            controller.enqueue("</span>");
+            this.#inSpan = false;
+        }
+    }
+
+    private handleText(
+        chunk: string,
+        controller: TransformStreamDefaultController<string>,
+    ): string {
+        const escIdx = chunk.indexOf("\x1B");
+        if (escIdx < 0) {
+            controller.enqueue(chunk);
+            return "";
+        } else {
+            controller.enqueue(chunk.slice(0, escIdx));
+            this.#state = SGRParserState.Esc;
+            return chunk.slice(escIdx + 1);
+        }
+    }
+
+    private handleEsc(chunk: string, controller: TransformStreamDefaultController<string>): string {
+        if (chunk.charCodeAt(0) === 0x5B) { // "["
+            this.#state = SGRParserState.Csi;
+            return chunk.slice(1);
+        } else {
+            controller.enqueue("\x1B");
+            this.#state = SGRParserState.Text;
+            return chunk;
+        }
+    }
+
+    private handleCsi(chunk: string, controller: TransformStreamDefaultController<string>): string {
+        const spaceLeft = SGRParser.csiArgLenLimit - this.#csiArgs.length;
+        const commandIdx = chunk.search(/[^0-9;]/);
+
+        const argsChunk = commandIdx < 0 ? chunk : chunk.slice(0, commandIdx);
+        if (argsChunk.length > spaceLeft) {
+            console.error("[sgrp] CSI parameter list too long. Rewriting as-is.");
+            this.dumpUnknownCsi(controller);
+            return chunk;
+        }
+
+        this.#csiArgs += argsChunk;
+        if (commandIdx >= 0) {
+            this.#csiCommand = chunk.charAt(commandIdx);
+            if (this.#csiCommand === "m") {
+                this.handleSgr(controller);
+            } else {
+                this.dumpUnknownCsi(controller);
+            }
+            return chunk.slice(commandIdx + 1);
+        } else {
+            return "";
+        }
+    }
+
+    private handleSgr(controller: TransformStreamDefaultController<string>): void {
+        if (this.#csiArgs.match(/^[0-9;]*$/) === null) {
+            console.error("[sgrp]: CSI parameter list doesn't match /^[0-9;]*$/. Rewriting as-is.");
+            this.dumpUnknownCsi(controller);
+            return;
+        }
+
+        const parameters = this.#csiArgs.length > 0
+            ? this.#csiArgs.split(";").map((i) => i.length > 0 ? parseInt(i, 10) : 0)
+            : [0];
+
+        const newStyle = this.parseSgrParameters(parameters);
+        if (!this.#style.equals(newStyle)) {
+            this.#style = newStyle;
+            this.handleStyleChange(controller);
+        }
+
+        this.#csiArgs = "";
+        this.#csiCommand = "";
+        this.#state = SGRParserState.Text;
+    }
+
+    private parseSgrParameters(parameters: number[]): SGRStyle {
+        const newStyle = this.#style.copy();
+        for (const parameter of parameters) {
+            switch (parameter) {
+                case 0:
+                    newStyle.fontWeight = "";
+                    break;
+
+                case 1:
+                    newStyle.fontWeight = "bolder";
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        return newStyle;
+    }
+
+    private handleStyleChange(controller: TransformStreamDefaultController<string>): void {
+        if (this.#inSpan) {
+            controller.enqueue("</span>");
+            this.#inSpan = false;
+        }
+
+        if (!this.#style.isEmpty()) {
+            controller.enqueue(`<span ${this.#style.toCssStyle()}>`);
+            this.#inSpan = true;
+        }
+    }
+
+    private dumpUnknownCsi(controller: TransformStreamDefaultController<string>): void {
+        controller.enqueue(`\x1B[${this.#csiArgs}${this.#csiCommand}`);
+        this.#csiArgs = "";
+        this.#csiCommand = "";
+        this.#state = SGRParserState.Text;
     }
 
     toStream(): TransformStream<string, string> {
