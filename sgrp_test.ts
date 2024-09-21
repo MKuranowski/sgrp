@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Mikołaj Kuranowski
+// SPDX-License-Identifier: MIT
+
 import { assertEquals } from "@std/assert";
 import { parse_sgr } from "./sgrp.ts";
 

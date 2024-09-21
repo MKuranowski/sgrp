@@ -1,3 +1,6 @@
+// Copyright (c) 2024 Mikołaj Kuranowski
+// SPDX-License-Identifier: MIT
+
 /**
  * Colors represents a set of css colors to use when converting ANSI SGR escape sequences
  * to HTML span elements.
