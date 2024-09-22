@@ -66,19 +66,21 @@ export const defaultPalette: Palette = {
 
 class Style {
     fontWeight: "" | "bolder" | "lighter" = "";
+    fontStyle: "" | "italic" = "";
 
     copy(): Style {
         const n = new Style();
         n.fontWeight = this.fontWeight;
+        n.fontStyle = this.fontStyle;
         return n;
     }
 
     equals(o: Style): boolean {
-        return this.fontWeight === o.fontWeight;
+        return this.fontWeight === o.fontWeight && this.fontStyle === o.fontStyle;
     }
 
     isEmpty(): boolean {
-        return this.fontWeight === "";
+        return this.fontWeight === "" && this.fontStyle === "";
     }
 
     toCssStyle(): string {
@@ -90,12 +92,19 @@ class Style {
             parts.push(";");
         }
 
+        if (this.fontStyle !== "") {
+            parts.push("font-style:");
+            parts.push(this.fontStyle);
+            parts.push(";");
+        }
+
         parts.push('"');
         return parts.join("");
     }
 
     applyTo(s: CSSStyleDeclaration): void {
         s.fontWeight = this.fontWeight;
+        s.fontStyle = this.fontStyle;
     }
 }
 
@@ -237,8 +246,16 @@ class Parser {
                     newStyle.fontWeight = "lighter";
                     break;
 
+                case 3:
+                    newStyle.fontStyle = "italic";
+                    break;
+
                 case 22:
                     newStyle.fontWeight = "";
+                    break;
+
+                case 23:
+                    newStyle.fontStyle = "";
                     break;
 
                 default:

@@ -25,6 +25,20 @@ Deno.test("supports faint and normal intensity", async () =>
         'hello, <span style="font-weight:lighter;">world</span>!',
     ));
 
+Deno.test("supports italic and not italic", async () =>
+    assertEquals(
+        await sgrToString("hello, \x1B[3mworld\x1B[23m!"),
+        'hello, <span style="font-style:italic;">world</span>!',
+    ));
+
+Deno.test("supports combining attributes", async () =>
+    assertEquals(
+        await sgrToString("\x1B[1mhello, \x1B[3mworld\x1B[22m!\x1B[23m"),
+        '<span style="font-weight:bolder;">hello, </span>' +
+            '<span style="font-weight:bolder;font-style:italic;">world</span>' +
+            '<span style="font-style:italic;">!</span>',
+    ));
+
 Deno.test("escapes html", async () =>
     assertEquals(
         await sgrToString("<\x1B[1mtag\x1B[0m attr='value with &'>"),
