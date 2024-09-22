@@ -1,6 +1,16 @@
 // Copyright (c) 2024 Mikołaj Kuranowski
 // SPDX-License-Identifier: MIT
 
+const htmlEscapes: Record<string, string> = {
+    "<": "&lt;",
+    ">": "&gt;",
+    "&": "&amp;",
+    "'": "&#39;",
+    '"': "&quot;",
+};
+
+const htmlEscape = (x: string) => x.replaceAll(/[<>&'"]/g, (c) => htmlEscapes[c]);
+
 /**
  * Colors represents a set of css colors to use when converting ANSI SGR escape sequences
  * to HTML span elements.
@@ -29,9 +39,9 @@ export interface Palette {
 }
 
 /**
- * default_palette is the set of default colors used by sgrp.
+ * defaultPalette is the set of default colors used by sgrp.
  */
-export const default_palette: Palette = {
+export const defaultPalette: Palette = {
     standard: {
         black: "#0c0c0c",
         red: "#c50f1f",
@@ -54,22 +64,16 @@ export const default_palette: Palette = {
     },
 };
 
-enum SGRParserState {
-    Text,
-    Esc,
-    Csi,
-}
-
-class SGRStyle {
+class Style {
     fontWeight: "" | "bolder" = "";
 
-    copy(): SGRStyle {
-        const n = new SGRStyle();
+    copy(): Style {
+        const n = new Style();
         n.fontWeight = this.fontWeight;
         return n;
     }
 
-    equals(o: SGRStyle): boolean {
+    equals(o: Style): boolean {
         return this.fontWeight === o.fontWeight;
     }
 
@@ -89,88 +93,95 @@ class SGRStyle {
         parts.push('"');
         return parts.join("");
     }
+
+    applyTo(s: CSSStyleDeclaration): void {
+        s.fontWeight = this.fontWeight;
+    }
 }
 
-export class SGRParser implements Transformer<string, string> {
+interface Handler {
+    onText(t: string): void;
+    onStyleChange(s: Style): void;
+}
+
+enum State {
+    Text,
+    Esc,
+    Csi,
+}
+
+class Parser {
     private static readonly csiArgLenLimit = 64;
 
-    #state: SGRParserState = SGRParserState.Text;
+    #state: State = State.Text;
     #csiArgs: string = "";
     #csiCommand: string = "";
+    #style: Style = new Style();
 
-    #inSpan: boolean = false;
-    #style: SGRStyle = new SGRStyle();
+    constructor(public handler: Handler) {}
 
-    transform(chunk: string, controller: TransformStreamDefaultController<string>): void {
+    push(chunk: string): void {
         while (chunk.length > 0) {
             switch (this.#state) {
-                case SGRParserState.Text:
-                    chunk = this.handleText(chunk, controller);
+                case State.Text:
+                    chunk = this.handleText(chunk);
                     break;
-                case SGRParserState.Esc:
-                    chunk = this.handleEsc(chunk, controller);
+                case State.Esc:
+                    chunk = this.handleEsc(chunk);
                     break;
-                case SGRParserState.Csi:
-                    chunk = this.handleCsi(chunk, controller);
+                case State.Csi:
+                    chunk = this.handleCsi(chunk);
                     break;
             }
         }
     }
 
-    flush(controller: TransformStreamDefaultController<string>): void {
+    finalize(): void {
         switch (this.#state) {
-            case SGRParserState.Text:
+            case State.Text:
                 break; // nothing to do
 
-            case SGRParserState.Esc:
-                controller.enqueue("\x1B");
+            case State.Esc:
+                this.handler.onText("\x1B");
                 break;
 
-            case SGRParserState.Csi:
-                this.dumpUnknownCsi(controller);
+            case State.Csi:
+                this.dumpUnknownCsi();
                 break;
-        }
-
-        if (this.#inSpan) {
-            controller.enqueue("</span>");
-            this.#inSpan = false;
         }
     }
 
-    private handleText(
-        chunk: string,
-        controller: TransformStreamDefaultController<string>,
-    ): string {
+    private handleText(chunk: string): string {
         const escIdx = chunk.indexOf("\x1B");
         if (escIdx < 0) {
-            controller.enqueue(chunk);
+            this.handler.onText(chunk);
             return "";
         } else {
-            controller.enqueue(chunk.slice(0, escIdx));
-            this.#state = SGRParserState.Esc;
+            this.handler.onText(chunk.slice(0, escIdx));
+            this.#state = State.Esc;
             return chunk.slice(escIdx + 1);
         }
     }
 
-    private handleEsc(chunk: string, controller: TransformStreamDefaultController<string>): string {
+    private handleEsc(chunk: string): string {
         if (chunk.charCodeAt(0) === 0x5B) { // "["
-            this.#state = SGRParserState.Csi;
+            this.#state = State.Csi;
             return chunk.slice(1);
         } else {
-            controller.enqueue("\x1B");
-            this.#state = SGRParserState.Text;
+            this.handler.onText("\x1B");
+            this.#state = State.Text;
             return chunk;
         }
     }
 
-    private handleCsi(chunk: string, controller: TransformStreamDefaultController<string>): string {
-        const spaceLeft = SGRParser.csiArgLenLimit - this.#csiArgs.length;
+    private handleCsi(chunk: string): string {
+        const spaceLeft = Parser.csiArgLenLimit - this.#csiArgs.length;
         const commandIdx = chunk.search(/[^0-9;]/);
 
         const argsChunk = commandIdx < 0 ? chunk : chunk.slice(0, commandIdx);
         if (argsChunk.length > spaceLeft) {
             console.error("[sgrp] CSI parameter list too long. Rewriting as-is.");
-            this.dumpUnknownCsi(controller);
+            this.dumpUnknownCsi();
             return chunk;
         }
 
@@ -178,9 +189,9 @@ export class SGRParser implements Transformer<string, string> {
         if (commandIdx >= 0) {
             this.#csiCommand = chunk.charAt(commandIdx);
             if (this.#csiCommand === "m") {
-                this.handleSgr(controller);
+                this.handleSgr();
             } else {
-                this.dumpUnknownCsi(controller);
+                this.dumpUnknownCsi();
             }
             return chunk.slice(commandIdx + 1);
         } else {
@@ -188,10 +199,10 @@ export class SGRParser implements Transformer<string, string> {
         }
     }
 
-    private handleSgr(controller: TransformStreamDefaultController<string>): void {
+    private handleSgr(): void {
         if (this.#csiArgs.match(/^[0-9;]*$/) === null) {
             console.error("[sgrp]: CSI parameter list doesn't match /^[0-9;]*$/. Rewriting as-is.");
-            this.dumpUnknownCsi(controller);
+            this.dumpUnknownCsi();
             return;
         }
 
@@ -202,15 +213,15 @@ export class SGRParser implements Transformer<string, string> {
         const newStyle = this.parseSgrParameters(parameters);
         if (!this.#style.equals(newStyle)) {
             this.#style = newStyle;
-            this.handleStyleChange(controller);
+            this.handler.onStyleChange(this.#style);
         }
 
         this.#csiArgs = "";
         this.#csiCommand = "";
-        this.#state = SGRParserState.Text;
+        this.#state = State.Text;
     }
 
-    private parseSgrParameters(parameters: number[]): SGRStyle {
+    private parseSgrParameters(parameters: number[]): Style {
         const newStyle = this.#style.copy();
         for (const parameter of parameters) {
             switch (parameter) {
@@ -229,27 +240,101 @@ export class SGRParser implements Transformer<string, string> {
         return newStyle;
     }
 
-    private handleStyleChange(controller: TransformStreamDefaultController<string>): void {
+    private dumpUnknownCsi(): void {
+        this.handler.onText(`\x1B[${this.#csiArgs}${this.#csiCommand}`);
+        this.#csiArgs = "";
+        this.#csiCommand = "";
+        this.#state = State.Text;
+    }
+}
+
+/**
+ * SGRToStringTransformer is a Transformer<string, string> converting ANSI SGR escape sequences
+ * to appropriately-styled HTML span elements.
+ *
+ * Any incoming HTML data is escaped, as otherwise the output might become malformed
+ * (think what would happen on this input: "<\x1B[1mb\x1B[m>").
+ */
+export class SGRToStringTransformer implements Transformer<string, string>, Handler {
+    parser: Parser;
+    #controller: TransformStreamDefaultController<string> | null = null;
+    #inSpan: boolean = false;
+
+    constructor() {
+        this.parser = new Parser(this);
+    }
+
+    transform(chunk: string, controller: TransformStreamDefaultController<string>): void {
+        this.#controller = controller;
+        this.parser.push(chunk);
+    }
+
+    flush(controller: TransformStreamDefaultController<string>): void {
+        this.#controller = controller;
+        this.parser.finalize();
         if (this.#inSpan) {
             controller.enqueue("</span>");
             this.#inSpan = false;
         }
+    }
 
-        if (!this.#style.isEmpty()) {
-            controller.enqueue(`<span ${this.#style.toCssStyle()}>`);
+    onText(t: string): void {
+        this.#controller!.enqueue(htmlEscape(t));
+    }
+
+    onStyleChange(s: Style): void {
+        if (this.#inSpan) {
+            this.#controller!.enqueue("</span>");
+            this.#inSpan = false;
+        }
+
+        if (!s.isEmpty()) {
+            this.#controller!.enqueue(`<span ${s.toCssStyle()}>`);
             this.#inSpan = true;
         }
     }
 
-    private dumpUnknownCsi(controller: TransformStreamDefaultController<string>): void {
-        controller.enqueue(`\x1B[${this.#csiArgs}${this.#csiCommand}`);
-        this.#csiArgs = "";
-        this.#csiCommand = "";
-        this.#state = SGRParserState.Text;
-    }
-
     toStream(): TransformStream<string, string> {
         return new TransformStream(this);
+    }
+}
+
+/**
+ * SGRToElementSink is a UnderlyingSink<string, string> converting ANSI SGR escape sequences
+ * to appropriately-styled HTML span elements, which are incrementally appended to the provided
+ * parent element.
+ *
+ * Any incoming HTML data is escaped, as otherwise the output might become malformed
+ * (think what would happen on this input: "<\x1B[1mb\x1B[m>").
+ */
+export class SGRToElementSink implements UnderlyingSink<string>, Handler {
+    parser: Parser;
+    #currentSpan: HTMLSpanElement;
+
+    constructor(public element: Node) {
+        this.parser = new Parser(this);
+        this.#currentSpan = this.element.appendChild(document.createElement("span"));
+    }
+
+    write(chunk: string, _controller: WritableStreamDefaultController): void {
+        this.parser.push(chunk);
+    }
+
+    close(): void {
+        this.parser.finalize();
+    }
+
+    onText(t: string): void {
+        this.#currentSpan.appendChild(new Text(t));
+    }
+
+    onStyleChange(s: Style): void {
+        this.#currentSpan = this.element.appendChild(document.createElement("span"));
+        s.applyTo(this.#currentSpan.style);
+    }
+
+    toStream(): WritableStream<string> {
+        return new WritableStream(this);
     }
 }
 
@@ -306,35 +391,45 @@ export class StringChunkSink implements UnderlyingSink<string> {
 }
 
 /**
- * HTMLEscaper implements Transformer<string, string> by replacing all occurrences of
- * <, >, &, ' and " by their entity references (&lt;, &gt;, &amp;, &#39;, &quot; respectively);
- * making the output safe to use in HTML contexts.
+ * sgrToString converts text containing ANSI SGR escape sequences to text containing
+ * appropriately-styled HTML span elements.
+ *
+ * Note that usage of this function should be reserved for testing purposes only.
+ * When appending data to the document, use {@link sgrToElement}. When writing data to a file
+ * or over a network, use {@link SGRToStringTransformer} directly to fully utilize JavaScript's
+ * streaming API.
+ *
+ * Any HTML in the input is escaped, as otherwise the output might become malformed
+ * (think what would happen on this input: "<\x1B[1mb\x1B[m>").
+ *
+ * @param {string | ReadableStream<string>} source string or a ReadableStream over text containing ANSI SGR escape sequences
+ * @returns {Promise<string>} promise resolving to a string with HTML span elements
  */
-export class HTMLEscaper implements Transformer<string, string> {
-    static readonly escapes: Record<string, string> = {
-        "<": "&lt;",
-        ">": "&gt;",
-        "&": "&amp;",
-        "'": "&#39;",
-        '"': "&quot;",
-    };
-
-    transform(chunk: string, controller: TransformStreamDefaultController<string>): void {
-        controller.enqueue(chunk.replaceAll(/[<>&'"]/g, (c) => HTMLEscaper.escapes[c]));
+export async function sgrToString(source: string | ReadableStream<string>): Promise<string> {
+    if (typeof source === "string") {
+        source = (new StringChunkSource(source)).toStream();
     }
-
-    toStream(): TransformStream<string, string> {
-        return new TransformStream(this);
-    }
+    const transformer = (new SGRToStringTransformer()).toStream();
+    const sink = new StringChunkSink();
+    await source.pipeThrough(transformer).pipeTo(sink.toStream());
+    return sink.toString();
 }
 
-export async function parse_sgr(x: string): Promise<string> {
-    const source = new StringChunkSource(x);
-    const escaper = new HTMLEscaper();
-    const parser = new SGRParser();
-    const sink = new StringChunkSink();
-    await source.toStream().pipeThrough(escaper.toStream()).pipeThrough(parser.toStream()).pipeTo(
-        sink.toStream(),
-    );
-    return sink.toString();
+/**
+ * sgrToElement converts text containing ANSI SGR escape sequences to a series of
+ * appropriately-styled HTML span elements and incrementally appends them to the provided DOM node.
+ *
+ * @param {string | ReadableStream<string>} source string or a ReadableStream over text containing ANSI SGR escape sequences
+ * @param {Node} element container for all the span tags
+ * @returns {Promise<void>} promise resolved when all of the input has been consumed and fully converted
+ */
+export function sgrToElement(
+    source: string | ReadableStream<string>,
+    element: Node,
+): Promise<void> {
+    if (typeof source === "string") {
+        source = (new StringChunkSource(source)).toStream();
+    }
+    const sink = (new SGRToElementSink(element)).toStream();
+    return source.pipeTo(sink);
 }
