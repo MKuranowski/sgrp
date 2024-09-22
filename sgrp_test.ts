@@ -39,6 +39,24 @@ Deno.test("supports combining attributes", async () =>
             '<span style="font-style:italic;">!</span>',
     ));
 
+Deno.test("supports underline and not underline", async () =>
+    assertEquals(
+        await sgrToString("hello, \x1B[4mworld\x1B[24m!"),
+        'hello, <span style="text-decoration:underline;">world</span>!',
+    ));
+
+Deno.test("supports crossed-out and not crossed-out", async () =>
+    assertEquals(
+        await sgrToString("hello, \x1B[9mworld\x1B[29m!"),
+        'hello, <span style="text-decoration:line-through;">world</span>!',
+    ));
+
+Deno.test("supports underline and crossed-out simultaneously", async () =>
+    assertEquals(
+        await sgrToString("hello, \x1B[4;9mworld\x1B[24;29m!"),
+        'hello, <span style="text-decoration:underline line-through;">world</span>!',
+    ));
+
 Deno.test("escapes html", async () =>
     assertEquals(
         await sgrToString("<\x1B[1mtag\x1B[0m attr='value with &'>"),

@@ -67,20 +67,27 @@ export const defaultPalette: Palette = {
 class Style {
     fontWeight: "" | "bolder" | "lighter" = "";
     fontStyle: "" | "italic" = "";
+    textDecorationUnderline: boolean = false;
+    textDecorationLineThrough: boolean = false;
 
     copy(): Style {
         const n = new Style();
         n.fontWeight = this.fontWeight;
         n.fontStyle = this.fontStyle;
+        n.textDecorationUnderline = this.textDecorationUnderline;
+        n.textDecorationLineThrough = this.textDecorationLineThrough;
         return n;
     }
 
     equals(o: Style): boolean {
-        return this.fontWeight === o.fontWeight && this.fontStyle === o.fontStyle;
+        return this.fontWeight === o.fontWeight && this.fontStyle === o.fontStyle &&
+            this.textDecorationUnderline === o.textDecorationUnderline &&
+            this.textDecorationLineThrough === o.textDecorationLineThrough;
     }
 
     isEmpty(): boolean {
-        return this.fontWeight === "" && this.fontStyle === "";
+        return this.fontWeight === "" && this.fontStyle === "" && !this.textDecorationUnderline &&
+            !this.textDecorationLineThrough;
     }
 
     toCssStyle(): string {
@@ -98,6 +105,12 @@ class Style {
             parts.push(";");
         }
 
+        if (this.textDecorationUnderline || this.textDecorationLineThrough) {
+            parts.push("text-decoration:");
+            parts.push(this.textDecoration);
+            parts.push(";");
+        }
+
         parts.push('"');
         return parts.join("");
     }
@@ -105,6 +118,18 @@ class Style {
     applyTo(s: CSSStyleDeclaration): void {
         s.fontWeight = this.fontWeight;
         s.fontStyle = this.fontStyle;
+        s.textDecoration = this.textDecoration;
+    }
+
+    get textDecoration(): string {
+        if (this.textDecorationUnderline && this.textDecorationLineThrough) {
+            return "underline line-through";
+        } else if (this.textDecorationUnderline) {
+            return "underline";
+        } else if (this.textDecorationLineThrough) {
+            return "line-through";
+        }
+        return "";
     }
 }
 
@@ -250,12 +275,28 @@ class Parser {
                     newStyle.fontStyle = "italic";
                     break;
 
+                case 4:
+                    newStyle.textDecorationUnderline = true;
+                    break;
+
+                case 9:
+                    newStyle.textDecorationLineThrough = true;
+                    break;
+
                 case 22:
                     newStyle.fontWeight = "";
                     break;
 
                 case 23:
                     newStyle.fontStyle = "";
+                    break;
+
+                case 24:
+                    newStyle.textDecorationUnderline = false;
+                    break;
+
+                case 29:
+                    newStyle.textDecorationLineThrough = false;
                     break;
 
                 default:
