@@ -19,6 +19,12 @@ Deno.test("supports implicit reset", async () =>
         'hello, <span style="font-weight:bolder;">world</span>!',
     ));
 
+Deno.test("supports faint and normal intensity", async () =>
+    assertEquals(
+        await sgrToString("hello, \x1B[2mworld\x1B[22m!"),
+        'hello, <span style="font-weight:lighter;">world</span>!',
+    ));
+
 Deno.test("escapes html", async () =>
     assertEquals(
         await sgrToString("<\x1B[1mtag\x1B[0m attr='value with &'>"),

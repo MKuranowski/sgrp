@@ -65,7 +65,7 @@ export const defaultPalette: Palette = {
 };
 
 class Style {
-    fontWeight: "" | "bolder" = "";
+    fontWeight: "" | "bolder" | "lighter" = "";
 
     copy(): Style {
         const n = new Style();
@@ -231,6 +231,14 @@ class Parser {
 
                 case 1:
                     newStyle.fontWeight = "bolder";
+                    break;
+
+                case 2:
+                    newStyle.fontWeight = "lighter";
+                    break;
+
+                case 22:
+                    newStyle.fontWeight = "";
                     break;
 
                 default:
