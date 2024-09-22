@@ -19,6 +19,12 @@ Deno.test("supports implicit reset", async () =>
         'hello, <span style="font-weight:bolder;">world</span>!',
     ));
 
+Deno.test("escapes html", async () =>
+    assertEquals(
+        await parse_sgr("<\x1B[1mtag\x1B[0m attr='value with &'>"),
+        '&lt;<span style="font-weight:bolder;">tag</span> attr=&#39;value with &amp;&#39;&gt;',
+    ));
+
 Deno.test("flushes terminal escapes", async () =>
     assertEquals(
         await parse_sgr("hello, \x1B"),

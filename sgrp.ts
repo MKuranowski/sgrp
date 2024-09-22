@@ -305,10 +305,36 @@ export class StringChunkSink implements UnderlyingSink<string> {
     }
 }
 
+/**
+ * HTMLEscaper implements Transformer<string, string> by replacing all occurrences of
+ * <, >, &, ' and " by their entity references (&lt;, &gt;, &amp;, &#39;, &quot; respectively);
+ * making the output safe to use in HTML contexts.
+ */
+export class HTMLEscaper implements Transformer<string, string> {
+    static readonly escapes: Record<string, string> = {
+        "<": "&lt;",
+        ">": "&gt;",
+        "&": "&amp;",
+        "'": "&#39;",
+        '"': "&quot;",
+    };
+
+    transform(chunk: string, controller: TransformStreamDefaultController<string>): void {
+        controller.enqueue(chunk.replaceAll(/[<>&'"]/g, (c) => HTMLEscaper.escapes[c]));
+    }
+
+    toStream(): TransformStream<string, string> {
+        return new TransformStream(this);
+    }
+}
+
 export async function parse_sgr(x: string): Promise<string> {
     const source = new StringChunkSource(x);
+    const escaper = new HTMLEscaper();
     const parser = new SGRParser();
     const sink = new StringChunkSink();
-    await source.toStream().pipeThrough(parser.toStream()).pipeTo(sink.toStream());
+    await source.toStream().pipeThrough(escaper.toStream()).pipeThrough(parser.toStream()).pipeTo(
+        sink.toStream(),
+    );
     return sink.toString();
 }
