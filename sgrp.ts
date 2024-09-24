@@ -38,6 +38,32 @@ export interface Palette {
     bright: Colors;
 }
 
+/** PartialPalette is a variant of {@link Palette} with all attributes optional. */
+export interface PartialPalette {
+    standard?: Partial<Colors>;
+    bright?: Partial<Colors>;
+}
+
+function resolveColors(a: Partial<Colors> | undefined, b: Colors): Colors {
+    return {
+        black: a?.black ?? b.black,
+        red: a?.red ?? b.red,
+        green: a?.green ?? b.green,
+        yellow: a?.yellow ?? b.yellow,
+        blue: a?.blue ?? b.blue,
+        magenta: a?.magenta ?? b.magenta,
+        cyan: a?.cyan ?? b.cyan,
+        white: a?.white ?? b.white,
+    };
+}
+
+function resolvePalette(a: PartialPalette | undefined, b: Palette = defaultPalette): Palette {
+    return {
+        standard: resolveColors(a?.standard, b.standard),
+        bright: resolveColors(a?.bright, b.bright),
+    };
+}
+
 /**
  * defaultPalette is the set of default colors used by sgrp.
  */
@@ -64,11 +90,16 @@ export const defaultPalette: Palette = {
     },
 };
 
+export interface Options {
+    palette?: PartialPalette;
+}
+
 class Style {
     fontWeight: "" | "bolder" | "lighter" = "";
     fontStyle: "" | "italic" = "";
     textDecorationUnderline: boolean = false;
     textDecorationLineThrough: boolean = false;
+    color: string = "";
 
     copy(): Style {
         const n = new Style();
@@ -76,18 +107,20 @@ class Style {
         n.fontStyle = this.fontStyle;
         n.textDecorationUnderline = this.textDecorationUnderline;
         n.textDecorationLineThrough = this.textDecorationLineThrough;
+        n.color = this.color;
         return n;
     }
 
     equals(o: Style): boolean {
         return this.fontWeight === o.fontWeight && this.fontStyle === o.fontStyle &&
             this.textDecorationUnderline === o.textDecorationUnderline &&
-            this.textDecorationLineThrough === o.textDecorationLineThrough;
+            this.textDecorationLineThrough === o.textDecorationLineThrough &&
+            this.color === o.color;
     }
 
     isEmpty(): boolean {
         return this.fontWeight === "" && this.fontStyle === "" && !this.textDecorationUnderline &&
-            !this.textDecorationLineThrough;
+            !this.textDecorationLineThrough && this.color === "";
     }
 
     toCssStyle(): string {
@@ -111,6 +144,12 @@ class Style {
             parts.push(";");
         }
 
+        if (this.color !== "") {
+            parts.push("color:");
+            parts.push(this.color); // TODO: escape CSS value
+            parts.push(";");
+        }
+
         parts.push('"');
         return parts.join("");
     }
@@ -119,6 +158,7 @@ class Style {
         s.fontWeight = this.fontWeight;
         s.fontStyle = this.fontStyle;
         s.textDecoration = this.textDecoration;
+        s.color = this.color;
     }
 
     get textDecoration(): string {
@@ -147,12 +187,16 @@ enum State {
 class Parser {
     private static readonly csiArgLenLimit = 64;
 
+    palette: Palette;
+
     #state: State = State.Text;
     #csiArgs: string = "";
     #csiCommand: string = "";
     #style: Style = new Style();
 
-    constructor(public handler: Handler) {}
+    constructor(public handler: Handler, options: Options = {}) {
+        this.palette = resolvePalette(options.palette);
+    }
 
     push(chunk: string): void {
         while (chunk.length > 0) {
@@ -299,6 +343,42 @@ class Parser {
                     newStyle.textDecorationLineThrough = false;
                     break;
 
+                case 30:
+                    newStyle.color = this.palette.standard.black;
+                    break;
+
+                case 31:
+                    newStyle.color = this.palette.standard.red;
+                    break;
+
+                case 32:
+                    newStyle.color = this.palette.standard.green;
+                    break;
+
+                case 33:
+                    newStyle.color = this.palette.standard.yellow;
+                    break;
+
+                case 34:
+                    newStyle.color = this.palette.standard.blue;
+                    break;
+
+                case 35:
+                    newStyle.color = this.palette.standard.magenta;
+                    break;
+
+                case 36:
+                    newStyle.color = this.palette.standard.cyan;
+                    break;
+
+                case 37:
+                    newStyle.color = this.palette.standard.white;
+                    break;
+
+                case 39:
+                    newStyle.color = "";
+                    break;
+
                 default:
                     break;
             }
@@ -326,8 +406,8 @@ export class SGRToStringTransformer implements Transformer<string, string>, Hand
     #controller: TransformStreamDefaultController<string> | null = null;
     #inSpan: boolean = false;
 
-    constructor() {
-        this.parser = new Parser(this);
+    constructor(options: Options = {}) {
+        this.parser = new Parser(this, options);
     }
 
     transform(chunk: string, controller: TransformStreamDefaultController<string>): void {
@@ -377,8 +457,8 @@ export class SGRToElementSink implements UnderlyingSink<string>, Handler {
     parser: Parser;
     #currentSpan: HTMLSpanElement;
 
-    constructor(public element: Node) {
-        this.parser = new Parser(this);
+    constructor(public element: Node, options: Options = {}) {
+        this.parser = new Parser(this, options);
         this.#currentSpan = this.element.appendChild(document.createElement("span"));
     }
 
@@ -469,13 +549,17 @@ export class StringChunkSink implements UnderlyingSink<string> {
  * (think what would happen on this input: "<\x1B[1mb\x1B[m>").
  *
  * @param {string | ReadableStream<string>} source string or a ReadableStream over text containing ANSI SGR escape sequences
+ * @param {Options} options to customize the conversion process
  * @returns {Promise<string>} promise resolving to a string with HTML span elements
  */
-export async function sgrToString(source: string | ReadableStream<string>): Promise<string> {
+export async function sgrToString(
+    source: string | ReadableStream<string>,
+    options: Options = {},
+): Promise<string> {
     if (typeof source === "string") {
         source = (new StringChunkSource(source)).toStream();
     }
-    const transformer = (new SGRToStringTransformer()).toStream();
+    const transformer = (new SGRToStringTransformer(options)).toStream();
     const sink = new StringChunkSink();
     await source.pipeThrough(transformer).pipeTo(sink.toStream());
     return sink.toString();
@@ -487,15 +571,17 @@ export async function sgrToString(source: string | ReadableStream<string>): Prom
  *
  * @param {string | ReadableStream<string>} source string or a ReadableStream over text containing ANSI SGR escape sequences
  * @param {Node} element container for all the span tags
+ * @param {Options} options to customize the conversion process
  * @returns {Promise<void>} promise resolved when all of the input has been consumed and fully converted
  */
 export function sgrToElement(
     source: string | ReadableStream<string>,
     element: Node,
+    options: Options = {},
 ): Promise<void> {
     if (typeof source === "string") {
         source = (new StringChunkSource(source)).toStream();
     }
-    const sink = (new SGRToElementSink(element)).toStream();
+    const sink = (new SGRToElementSink(element, options)).toStream();
     return source.pipeTo(sink);
 }

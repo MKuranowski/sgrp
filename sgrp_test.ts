@@ -57,6 +57,29 @@ Deno.test("supports underline and crossed-out simultaneously", async () =>
         'hello, <span style="text-decoration:underline line-through;">world</span>!',
     ));
 
+Deno.test("supports standard foreground colors", async () =>
+    assertEquals(
+        await sgrToString("\x1B[30mlorem \x1B[31mipsum \x1B[32mdolor \x1B[33msit \x1B[39mamet"),
+        '<span style="color:#0c0c0c;">lorem </span>' +
+            '<span style="color:#c50f1f;">ipsum </span>' +
+            '<span style="color:#13a10e;">dolor </span>' +
+            '<span style="color:#c19c00;">sit </span>' +
+            "amet",
+    ));
+
+Deno.test("supports custom foreground colors", async () =>
+    assertEquals(
+        await sgrToString(
+            "\x1B[34mlorem \x1B[35mipsum \x1B[36mdolor \x1B[37msit \x1B[39mamet",
+            { palette: { standard: { magenta: "#a0a", cyan: "#0aa" } } },
+        ),
+        '<span style="color:#0037da;">lorem </span>' +
+            '<span style="color:#a0a;">ipsum </span>' +
+            '<span style="color:#0aa;">dolor </span>' +
+            '<span style="color:#cccccc;">sit </span>' +
+            "amet",
+    ));
+
 Deno.test("escapes html", async () =>
     assertEquals(
         await sgrToString("<\x1B[1mtag\x1B[0m attr='value with &'>"),
