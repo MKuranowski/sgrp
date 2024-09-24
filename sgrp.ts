@@ -379,6 +379,38 @@ class Parser {
                     newStyle.color = "";
                     break;
 
+                case 90:
+                    newStyle.color = this.palette.bright.black;
+                    break;
+
+                case 91:
+                    newStyle.color = this.palette.bright.red;
+                    break;
+
+                case 92:
+                    newStyle.color = this.palette.bright.green;
+                    break;
+
+                case 93:
+                    newStyle.color = this.palette.bright.yellow;
+                    break;
+
+                case 94:
+                    newStyle.color = this.palette.bright.blue;
+                    break;
+
+                case 95:
+                    newStyle.color = this.palette.bright.magenta;
+                    break;
+
+                case 96:
+                    newStyle.color = this.palette.bright.cyan;
+                    break;
+
+                case 97:
+                    newStyle.color = this.palette.bright.white;
+                    break;
+
                 default:
                     break;
             }

@@ -67,7 +67,7 @@ Deno.test("supports standard foreground colors", async () =>
             "amet",
     ));
 
-Deno.test("supports custom foreground colors", async () =>
+Deno.test("supports custom standard foreground colors", async () =>
     assertEquals(
         await sgrToString(
             "\x1B[34mlorem \x1B[35mipsum \x1B[36mdolor \x1B[37msit \x1B[39mamet",
@@ -77,6 +77,29 @@ Deno.test("supports custom foreground colors", async () =>
             '<span style="color:#a0a;">ipsum </span>' +
             '<span style="color:#0aa;">dolor </span>' +
             '<span style="color:#cccccc;">sit </span>' +
+            "amet",
+    ));
+
+Deno.test("supports bright foreground colors", async () =>
+    assertEquals(
+        await sgrToString("\x1B[90mlorem \x1B[91mipsum \x1B[92mdolor \x1B[93msit \x1B[39mamet"),
+        '<span style="color:#767676;">lorem </span>' +
+            '<span style="color:#e74856;">ipsum </span>' +
+            '<span style="color:#16c60c;">dolor </span>' +
+            '<span style="color:#f9f1a5;">sit </span>' +
+            "amet",
+    ));
+
+Deno.test("supports custom bright foreground colors", async () =>
+    assertEquals(
+        await sgrToString(
+            "\x1B[94mlorem \x1B[95mipsum \x1B[96mdolor \x1B[97msit \x1B[39mamet",
+            { palette: { bright: { magenta: "#a5a", cyan: "#5aa" } } },
+        ),
+        '<span style="color:#3b78ff;">lorem </span>' +
+            '<span style="color:#a5a;">ipsum </span>' +
+            '<span style="color:#5aa;">dolor </span>' +
+            '<span style="color:#f2f2f2;">sit </span>' +
             "amet",
     ));
 
