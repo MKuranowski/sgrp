@@ -16,6 +16,16 @@ const isU8Number = (x: number) => x >= 0 && x <= 255 && Number.isSafeInteger(x);
 /**
  * Colors represents a set of css colors to use when converting ANSI SGR escape sequences
  * to HTML span elements.
+ *
+ * @typedef {object} Colors
+ * @property {string} black
+ * @property {string} red
+ * @property {string} green
+ * @property {string} yellow
+ * @property {string} blue
+ * @property {string} magenta
+ * @property {string} cyan
+ * @property {string} white
  */
 export interface Colors {
     black: string;
@@ -34,13 +44,23 @@ export interface Colors {
  *
  * The "standard" colors are used by SGR parameters 30 to 37 and 40 to 47, while
  * "bright" colors are used by SGR parameters 90 to 97 and 100 to 107.
+ *
+ * @typedef {object} Palette
+ * @property {Colors} standard
+ * @property {Colors} bright
  */
 export interface Palette {
     standard: Colors;
     bright: Colors;
 }
 
-/** PartialPalette is a variant of {@link Palette} with all attributes optional. */
+/**
+ * PartialPalette is a variant of {@link Palette} with all attributes optional.
+ *
+ * @typedef {object} PartialPalette
+ * @property {Partial<Colors>} [standard]
+ * @property {Partial<Colors>} [bright]
+ */
 export interface PartialPalette {
     standard?: Partial<Colors>;
     bright?: Partial<Colors>;
@@ -68,6 +88,8 @@ function resolvePalette(a: PartialPalette | undefined, b: Palette = defaultPalet
 
 /**
  * defaultPalette is the set of default colors used by sgrp.
+ *
+ * @type {Palette}
  */
 export const defaultPalette: Palette = {
     standard: {
@@ -92,6 +114,12 @@ export const defaultPalette: Palette = {
     },
 };
 
+/**
+ * Options customize the ANSI SGR to HTML span conversion process.
+ *
+ * @typedef {object} Options
+ * @property {PartialPalette} [palette]
+ */
 export interface Options {
     palette?: PartialPalette;
 }
@@ -636,11 +664,34 @@ export class SGRToStringTransformer extends Parser implements Transformer<string
     #controller: TransformStreamDefaultController<string> | null = null;
     #inSpan: boolean = false;
 
+    /**
+     * Constructs a new SGRToStringTransformer.
+     *
+     * @param {Options} options - set of parameters customizing the conversion process
+     */
+    constructor(options: Options = {}) {
+        super(options);
+    }
+
+    /**
+     * transform processes a chunk of input string. Part of the
+     * [TransformStream's transformer API](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream/TransformStream#transformer).
+     *
+     * @param {string} chunk
+     * @param {TransformStreamDefaultController<string>} controller
+     */
     transform(chunk: string, controller: TransformStreamDefaultController<string>): void {
         this.#controller = controller;
         this.push(chunk);
     }
 
+    /**
+     * flush marks the end of stream. Part of the
+     * [TransformStream's transformer API](https://developer.mozilla.org/en-US/docs/Web/API/TransformStream/TransformStream#transformer).
+     *
+     * @param {string} chunk
+     * @param {TransformStreamDefaultController<string>} controller
+     */
     flush(controller: TransformStreamDefaultController<string>): void {
         this.#controller = controller;
         this.finalize();
@@ -650,6 +701,11 @@ export class SGRToStringTransformer extends Parser implements Transformer<string
         }
     }
 
+    /**
+     * Returns a new TransformStream around this SGRToStringTransformer.
+     *
+     * @returns {TransformStream<string, string>}
+     */
     toStream(): TransformStream<string, string> {
         return new TransformStream(this);
     }
@@ -682,19 +738,44 @@ export class SGRToStringTransformer extends Parser implements Transformer<string
 export class SGRToElementSink extends Parser implements UnderlyingSink<string> {
     #currentSpan: HTMLSpanElement;
 
+    /**
+     * Constructs a new SGRToElementSink
+     *
+     * @param {Node} element - parent element of all the <spans>
+     * @param {Options} options - set of parameters customizing the conversion process
+     */
     constructor(public element: Node, options: Options = {}) {
         super(options);
         this.#currentSpan = this.element.appendChild(document.createElement("span"));
     }
 
+    /**
+     * write processes a chunk of input string. Part of the
+     * [WritableStream's underlyingSink API](https://developer.mozilla.org/en-US/docs/Web/API/WritableStream/WritableStream#underlyingsink).
+     *
+     * @param {string} chunk
+     * @param {WritableStreamDefaultController<string>} _controller
+     */
     write(chunk: string, _controller: WritableStreamDefaultController): void {
         this.push(chunk);
     }
 
+    /**
+     * close marks the end of stream. Part of the
+     * [WritableStream's underlyingSink API](https://developer.mozilla.org/en-US/docs/Web/API/WritableStream/WritableStream#underlyingsink).
+     *
+     * @param {string} chunk
+     * @param {TransformStreamDefaultController<string>} controller
+     */
     close(): void {
         this.finalize();
     }
 
+    /**
+     * Returns a new WritableStream around this SGRToElementSink.
+     *
+     * @returns {WritableStream<string>}
+     */
     toStream(): WritableStream<string> {
         return new WritableStream(this);
     }
@@ -717,6 +798,11 @@ export class StringChunkSource implements UnderlyingDefaultSource<string> {
     text: string;
     offset: number = 0;
 
+    /**
+     * Creates a new StringChunkSource.
+     *
+     * @param {string} text
+     */
     constructor(text: string) {
         this.text = text;
     }
@@ -748,14 +834,30 @@ export class StringChunkSource implements UnderlyingDefaultSource<string> {
 export class StringChunkSink implements UnderlyingSink<string> {
     chunks: string[] = [];
 
-    write(chunk: string, _controller: WritableStreamDefaultController): void {
+    /**
+     * write saves the provided string.
+     *
+     * @param {string} chunk
+     * @param {WritableStreamDefaultController} [_controller]
+     */
+    write(chunk: string, _controller?: WritableStreamDefaultController): void {
         this.chunks.push(chunk);
     }
 
+    /**
+     * Returns a new WritableStream around this StringChunkSink.
+     *
+     * @returns {WritableStream<string>}
+     */
     toStream(): WritableStream<string> {
         return new WritableStream(this);
     }
 
+    /**
+     * toString concatenates all remembered chunks into a single string.
+     *
+     * @returns {string}
+     */
     toString(): string {
         return this.chunks.join("");
     }
