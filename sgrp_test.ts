@@ -103,6 +103,52 @@ Deno.test("supports custom bright foreground colors", async () =>
             "amet",
     ));
 
+Deno.test("supports standard background colors", async () =>
+    assertEquals(
+        await sgrToString("\x1B[40mlorem \x1B[41mipsum \x1B[42mdolor \x1B[43msit \x1B[49mamet"),
+        '<span style="background-color:#0c0c0c;">lorem </span>' +
+            '<span style="background-color:#c50f1f;">ipsum </span>' +
+            '<span style="background-color:#13a10e;">dolor </span>' +
+            '<span style="background-color:#c19c00;">sit </span>' +
+            "amet",
+    ));
+
+Deno.test("supports custom standard background colors", async () =>
+    assertEquals(
+        await sgrToString(
+            "\x1B[44mlorem \x1B[45mipsum \x1B[46mdolor \x1B[47msit \x1B[49mamet",
+            { palette: { standard: { magenta: "#a0a", cyan: "#0aa" } } },
+        ),
+        '<span style="background-color:#0037da;">lorem </span>' +
+            '<span style="background-color:#a0a;">ipsum </span>' +
+            '<span style="background-color:#0aa;">dolor </span>' +
+            '<span style="background-color:#cccccc;">sit </span>' +
+            "amet",
+    ));
+
+Deno.test("supports bright background colors", async () =>
+    assertEquals(
+        await sgrToString("\x1B[100mlorem \x1B[101mipsum \x1B[102mdolor \x1B[103msit \x1B[49mamet"),
+        '<span style="background-color:#767676;">lorem </span>' +
+            '<span style="background-color:#e74856;">ipsum </span>' +
+            '<span style="background-color:#16c60c;">dolor </span>' +
+            '<span style="background-color:#f9f1a5;">sit </span>' +
+            "amet",
+    ));
+
+Deno.test("supports custom bright background colors", async () =>
+    assertEquals(
+        await sgrToString(
+            "\x1B[104mlorem \x1B[105mipsum \x1B[106mdolor \x1B[107msit \x1B[49mamet",
+            { palette: { bright: { magenta: "#a5a", cyan: "#5aa" } } },
+        ),
+        '<span style="background-color:#3b78ff;">lorem </span>' +
+            '<span style="background-color:#a5a;">ipsum </span>' +
+            '<span style="background-color:#5aa;">dolor </span>' +
+            '<span style="background-color:#f2f2f2;">sit </span>' +
+            "amet",
+    ));
+
 Deno.test("escapes html", async () =>
     assertEquals(
         await sgrToString("<\x1B[1mtag\x1B[0m attr='value with &'>"),

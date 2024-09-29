@@ -100,6 +100,7 @@ class Style {
     textDecorationUnderline: boolean = false;
     textDecorationLineThrough: boolean = false;
     color: string = "";
+    backgroundColor: string = "";
 
     copy(): Style {
         const n = new Style();
@@ -108,6 +109,7 @@ class Style {
         n.textDecorationUnderline = this.textDecorationUnderline;
         n.textDecorationLineThrough = this.textDecorationLineThrough;
         n.color = this.color;
+        n.backgroundColor = this.backgroundColor;
         return n;
     }
 
@@ -115,12 +117,12 @@ class Style {
         return this.fontWeight === o.fontWeight && this.fontStyle === o.fontStyle &&
             this.textDecorationUnderline === o.textDecorationUnderline &&
             this.textDecorationLineThrough === o.textDecorationLineThrough &&
-            this.color === o.color;
+            this.color === o.color && this.backgroundColor === o.backgroundColor;
     }
 
     isEmpty(): boolean {
         return this.fontWeight === "" && this.fontStyle === "" && !this.textDecorationUnderline &&
-            !this.textDecorationLineThrough && this.color === "";
+            !this.textDecorationLineThrough && this.color === "" && this.backgroundColor === "";
     }
 
     toCssStyle(): string {
@@ -150,6 +152,12 @@ class Style {
             parts.push(";");
         }
 
+        if (this.backgroundColor !== "") {
+            parts.push("background-color:");
+            parts.push(this.backgroundColor); // TODO: escape CSS value
+            parts.push(";");
+        }
+
         parts.push('"');
         return parts.join("");
     }
@@ -159,6 +167,7 @@ class Style {
         s.fontStyle = this.fontStyle;
         s.textDecoration = this.textDecoration;
         s.color = this.color;
+        s.backgroundColor = this.backgroundColor;
     }
 
     get textDecoration(): string {
@@ -379,6 +388,42 @@ class Parser {
                     newStyle.color = "";
                     break;
 
+                case 40:
+                    newStyle.backgroundColor = this.palette.standard.black;
+                    break;
+
+                case 41:
+                    newStyle.backgroundColor = this.palette.standard.red;
+                    break;
+
+                case 42:
+                    newStyle.backgroundColor = this.palette.standard.green;
+                    break;
+
+                case 43:
+                    newStyle.backgroundColor = this.palette.standard.yellow;
+                    break;
+
+                case 44:
+                    newStyle.backgroundColor = this.palette.standard.blue;
+                    break;
+
+                case 45:
+                    newStyle.backgroundColor = this.palette.standard.magenta;
+                    break;
+
+                case 46:
+                    newStyle.backgroundColor = this.palette.standard.cyan;
+                    break;
+
+                case 47:
+                    newStyle.backgroundColor = this.palette.standard.white;
+                    break;
+
+                case 49:
+                    newStyle.backgroundColor = "";
+                    break;
+
                 case 90:
                     newStyle.color = this.palette.bright.black;
                     break;
@@ -409,6 +454,38 @@ class Parser {
 
                 case 97:
                     newStyle.color = this.palette.bright.white;
+                    break;
+
+                case 100:
+                    newStyle.backgroundColor = this.palette.bright.black;
+                    break;
+
+                case 101:
+                    newStyle.backgroundColor = this.palette.bright.red;
+                    break;
+
+                case 102:
+                    newStyle.backgroundColor = this.palette.bright.green;
+                    break;
+
+                case 103:
+                    newStyle.backgroundColor = this.palette.bright.yellow;
+                    break;
+
+                case 104:
+                    newStyle.backgroundColor = this.palette.bright.blue;
+                    break;
+
+                case 105:
+                    newStyle.backgroundColor = this.palette.bright.magenta;
+                    break;
+
+                case 106:
+                    newStyle.backgroundColor = this.palette.bright.cyan;
+                    break;
+
+                case 107:
+                    newStyle.backgroundColor = this.palette.bright.white;
                     break;
 
                 default:
