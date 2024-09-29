@@ -184,32 +184,30 @@ class Style {
     }
 }
 
-interface Handler {
-    onText(t: string): void;
-    onStyleChange(s: Style): void;
-}
-
 enum State {
     Text,
     Esc,
     Csi,
 }
 
-class Parser {
+abstract class Parser {
     private static readonly csiArgLenLimit = 64;
 
-    palette: Palette;
-
+    #palette: Palette;
     #state: State = State.Text;
     #csiArgs: string = "";
     #csiCommand: string = "";
     #style: Style = new Style();
 
-    constructor(public handler: Handler, options: Options = {}) {
-        this.palette = resolvePalette(options.palette);
+    constructor(options: Options = {}) {
+        this.#palette = resolvePalette(options.palette);
     }
 
-    push(chunk: string): void {
+    protected abstract onText(t: string): void;
+
+    protected abstract onStyleChange(s: Style): void;
+
+    protected push(chunk: string): void {
         while (chunk.length > 0) {
             switch (this.#state) {
                 case State.Text:
@@ -225,13 +223,13 @@ class Parser {
         }
     }
 
-    finalize(): void {
+    protected finalize(): void {
         switch (this.#state) {
             case State.Text:
                 break; // nothing to do
 
             case State.Esc:
-                this.handler.onText("\x1B");
+                this.onText("\x1B");
                 break;
 
             case State.Csi:
@@ -243,10 +241,10 @@ class Parser {
     private handleText(chunk: string): string {
         const escIdx = chunk.indexOf("\x1B");
         if (escIdx < 0) {
-            this.handler.onText(chunk);
+            this.onText(chunk);
             return "";
         } else {
-            this.handler.onText(chunk.slice(0, escIdx));
+            this.onText(chunk.slice(0, escIdx));
             this.#state = State.Esc;
             return chunk.slice(escIdx + 1);
         }
@@ -257,7 +255,7 @@ class Parser {
             this.#state = State.Csi;
             return chunk.slice(1);
         } else {
-            this.handler.onText("\x1B");
+            this.onText("\x1B");
             this.#state = State.Text;
             return chunk;
         }
@@ -302,7 +300,7 @@ class Parser {
         const newStyle = this.parseSgrParameters(parameters);
         if (!this.#style.equals(newStyle)) {
             this.#style = newStyle;
-            this.handler.onStyleChange(this.#style);
+            this.onStyleChange(this.#style);
         }
 
         this.#csiArgs = "";
@@ -355,35 +353,35 @@ class Parser {
                     break;
 
                 case 30:
-                    newStyle.color = this.palette.standard.black;
+                    newStyle.color = this.#palette.standard.black;
                     break;
 
                 case 31:
-                    newStyle.color = this.palette.standard.red;
+                    newStyle.color = this.#palette.standard.red;
                     break;
 
                 case 32:
-                    newStyle.color = this.palette.standard.green;
+                    newStyle.color = this.#palette.standard.green;
                     break;
 
                 case 33:
-                    newStyle.color = this.palette.standard.yellow;
+                    newStyle.color = this.#palette.standard.yellow;
                     break;
 
                 case 34:
-                    newStyle.color = this.palette.standard.blue;
+                    newStyle.color = this.#palette.standard.blue;
                     break;
 
                 case 35:
-                    newStyle.color = this.palette.standard.magenta;
+                    newStyle.color = this.#palette.standard.magenta;
                     break;
 
                 case 36:
-                    newStyle.color = this.palette.standard.cyan;
+                    newStyle.color = this.#palette.standard.cyan;
                     break;
 
                 case 37:
-                    newStyle.color = this.palette.standard.white;
+                    newStyle.color = this.#palette.standard.white;
                     break;
 
                 case 38: {
@@ -401,35 +399,35 @@ class Parser {
                     break;
 
                 case 40:
-                    newStyle.backgroundColor = this.palette.standard.black;
+                    newStyle.backgroundColor = this.#palette.standard.black;
                     break;
 
                 case 41:
-                    newStyle.backgroundColor = this.palette.standard.red;
+                    newStyle.backgroundColor = this.#palette.standard.red;
                     break;
 
                 case 42:
-                    newStyle.backgroundColor = this.palette.standard.green;
+                    newStyle.backgroundColor = this.#palette.standard.green;
                     break;
 
                 case 43:
-                    newStyle.backgroundColor = this.palette.standard.yellow;
+                    newStyle.backgroundColor = this.#palette.standard.yellow;
                     break;
 
                 case 44:
-                    newStyle.backgroundColor = this.palette.standard.blue;
+                    newStyle.backgroundColor = this.#palette.standard.blue;
                     break;
 
                 case 45:
-                    newStyle.backgroundColor = this.palette.standard.magenta;
+                    newStyle.backgroundColor = this.#palette.standard.magenta;
                     break;
 
                 case 46:
-                    newStyle.backgroundColor = this.palette.standard.cyan;
+                    newStyle.backgroundColor = this.#palette.standard.cyan;
                     break;
 
                 case 47:
-                    newStyle.backgroundColor = this.palette.standard.white;
+                    newStyle.backgroundColor = this.#palette.standard.white;
                     break;
 
                 case 48: {
@@ -447,67 +445,67 @@ class Parser {
                     break;
 
                 case 90:
-                    newStyle.color = this.palette.bright.black;
+                    newStyle.color = this.#palette.bright.black;
                     break;
 
                 case 91:
-                    newStyle.color = this.palette.bright.red;
+                    newStyle.color = this.#palette.bright.red;
                     break;
 
                 case 92:
-                    newStyle.color = this.palette.bright.green;
+                    newStyle.color = this.#palette.bright.green;
                     break;
 
                 case 93:
-                    newStyle.color = this.palette.bright.yellow;
+                    newStyle.color = this.#palette.bright.yellow;
                     break;
 
                 case 94:
-                    newStyle.color = this.palette.bright.blue;
+                    newStyle.color = this.#palette.bright.blue;
                     break;
 
                 case 95:
-                    newStyle.color = this.palette.bright.magenta;
+                    newStyle.color = this.#palette.bright.magenta;
                     break;
 
                 case 96:
-                    newStyle.color = this.palette.bright.cyan;
+                    newStyle.color = this.#palette.bright.cyan;
                     break;
 
                 case 97:
-                    newStyle.color = this.palette.bright.white;
+                    newStyle.color = this.#palette.bright.white;
                     break;
 
                 case 100:
-                    newStyle.backgroundColor = this.palette.bright.black;
+                    newStyle.backgroundColor = this.#palette.bright.black;
                     break;
 
                 case 101:
-                    newStyle.backgroundColor = this.palette.bright.red;
+                    newStyle.backgroundColor = this.#palette.bright.red;
                     break;
 
                 case 102:
-                    newStyle.backgroundColor = this.palette.bright.green;
+                    newStyle.backgroundColor = this.#palette.bright.green;
                     break;
 
                 case 103:
-                    newStyle.backgroundColor = this.palette.bright.yellow;
+                    newStyle.backgroundColor = this.#palette.bright.yellow;
                     break;
 
                 case 104:
-                    newStyle.backgroundColor = this.palette.bright.blue;
+                    newStyle.backgroundColor = this.#palette.bright.blue;
                     break;
 
                 case 105:
-                    newStyle.backgroundColor = this.palette.bright.magenta;
+                    newStyle.backgroundColor = this.#palette.bright.magenta;
                     break;
 
                 case 106:
-                    newStyle.backgroundColor = this.palette.bright.cyan;
+                    newStyle.backgroundColor = this.#palette.bright.cyan;
                     break;
 
                 case 107:
-                    newStyle.backgroundColor = this.palette.bright.white;
+                    newStyle.backgroundColor = this.#palette.bright.white;
                     break;
 
                 default:
@@ -561,37 +559,37 @@ class Parser {
                     console.error(`[sgrp] Missing parameter after SGR ${mainParameter};5`);
                     return null;
                 } else if (v === 0) {
-                    return [i, this.palette.standard.black];
+                    return [i, this.#palette.standard.black];
                 } else if (v === 1) {
-                    return [i, this.palette.standard.red];
+                    return [i, this.#palette.standard.red];
                 } else if (v === 2) {
-                    return [i, this.palette.standard.green];
+                    return [i, this.#palette.standard.green];
                 } else if (v === 3) {
-                    return [i, this.palette.standard.yellow];
+                    return [i, this.#palette.standard.yellow];
                 } else if (v === 4) {
-                    return [i, this.palette.standard.blue];
+                    return [i, this.#palette.standard.blue];
                 } else if (v === 5) {
-                    return [i, this.palette.standard.magenta];
+                    return [i, this.#palette.standard.magenta];
                 } else if (v === 6) {
-                    return [i, this.palette.standard.cyan];
+                    return [i, this.#palette.standard.cyan];
                 } else if (v === 7) {
-                    return [i, this.palette.standard.white];
+                    return [i, this.#palette.standard.white];
                 } else if (v === 8) {
-                    return [i, this.palette.bright.black];
+                    return [i, this.#palette.bright.black];
                 } else if (v === 9) {
-                    return [i, this.palette.bright.red];
+                    return [i, this.#palette.bright.red];
                 } else if (v === 10) {
-                    return [i, this.palette.bright.green];
+                    return [i, this.#palette.bright.green];
                 } else if (v === 11) {
-                    return [i, this.palette.bright.yellow];
+                    return [i, this.#palette.bright.yellow];
                 } else if (v === 12) {
-                    return [i, this.palette.bright.blue];
+                    return [i, this.#palette.bright.blue];
                 } else if (v === 13) {
-                    return [i, this.palette.bright.magenta];
+                    return [i, this.#palette.bright.magenta];
                 } else if (v === 14) {
-                    return [i, this.palette.bright.cyan];
+                    return [i, this.#palette.bright.cyan];
                 } else if (v === 15) {
-                    return [i, this.palette.bright.white];
+                    return [i, this.#palette.bright.white];
                 } else if (v >= 16 && v <= 231 && Number.isSafeInteger(v)) {
                     let rest = v - 16;
                     const b = (rest % 6) * 51;
@@ -620,7 +618,7 @@ class Parser {
     }
 
     private dumpUnknownCsi(): void {
-        this.handler.onText(`\x1B[${this.#csiArgs}${this.#csiCommand}`);
+        this.onText(`\x1B[${this.#csiArgs}${this.#csiCommand}`);
         this.#csiArgs = "";
         this.#csiCommand = "";
         this.#state = State.Text;
@@ -634,34 +632,33 @@ class Parser {
  * Any incoming HTML data is escaped, as otherwise the output might become malformed
  * (think what would happen on this input: "<\x1B[1mb\x1B[m>").
  */
-export class SGRToStringTransformer implements Transformer<string, string>, Handler {
-    parser: Parser;
+export class SGRToStringTransformer extends Parser implements Transformer<string, string> {
     #controller: TransformStreamDefaultController<string> | null = null;
     #inSpan: boolean = false;
 
-    constructor(options: Options = {}) {
-        this.parser = new Parser(this, options);
-    }
-
     transform(chunk: string, controller: TransformStreamDefaultController<string>): void {
         this.#controller = controller;
-        this.parser.push(chunk);
+        this.push(chunk);
     }
 
     flush(controller: TransformStreamDefaultController<string>): void {
         this.#controller = controller;
-        this.parser.finalize();
+        this.finalize();
         if (this.#inSpan) {
             controller.enqueue("</span>");
             this.#inSpan = false;
         }
     }
 
-    onText(t: string): void {
+    toStream(): TransformStream<string, string> {
+        return new TransformStream(this);
+    }
+
+    protected onText(t: string): void {
         this.#controller!.enqueue(htmlEscape(t));
     }
 
-    onStyleChange(s: Style): void {
+    protected onStyleChange(s: Style): void {
         if (this.#inSpan) {
             this.#controller!.enqueue("</span>");
             this.#inSpan = false;
@@ -671,10 +668,6 @@ export class SGRToStringTransformer implements Transformer<string, string>, Hand
             this.#controller!.enqueue(`<span ${s.toCssStyle()}>`);
             this.#inSpan = true;
         }
-    }
-
-    toStream(): TransformStream<string, string> {
-        return new TransformStream(this);
     }
 }
 
@@ -686,34 +679,33 @@ export class SGRToStringTransformer implements Transformer<string, string>, Hand
  * Any incoming HTML data is escaped, as otherwise the output might become malformed
  * (think what would happen on this input: "<\x1B[1mb\x1B[m>").
  */
-export class SGRToElementSink implements UnderlyingSink<string>, Handler {
-    parser: Parser;
+export class SGRToElementSink extends Parser implements UnderlyingSink<string> {
     #currentSpan: HTMLSpanElement;
 
     constructor(public element: Node, options: Options = {}) {
-        this.parser = new Parser(this, options);
+        super(options);
         this.#currentSpan = this.element.appendChild(document.createElement("span"));
     }
 
     write(chunk: string, _controller: WritableStreamDefaultController): void {
-        this.parser.push(chunk);
+        this.push(chunk);
     }
 
     close(): void {
-        this.parser.finalize();
-    }
-
-    onText(t: string): void {
-        this.#currentSpan.appendChild(new Text(t));
-    }
-
-    onStyleChange(s: Style): void {
-        this.#currentSpan = this.element.appendChild(document.createElement("span"));
-        s.applyTo(this.#currentSpan.style);
+        this.finalize();
     }
 
     toStream(): WritableStream<string> {
         return new WritableStream(this);
+    }
+
+    protected onText(t: string): void {
+        this.#currentSpan.appendChild(new Text(t));
+    }
+
+    protected onStyleChange(s: Style): void {
+        this.#currentSpan = this.element.appendChild(document.createElement("span"));
+        s.applyTo(this.#currentSpan.style);
     }
 }
 
