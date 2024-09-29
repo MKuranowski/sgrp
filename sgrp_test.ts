@@ -149,6 +149,78 @@ Deno.test("supports custom bright background colors", async () =>
             "amet",
     ));
 
+Deno.test("supports 8-bit colorspace standard colors", async () =>
+    assertEquals(
+        await sgrToString("\x1B[38;5;3mhello"),
+        '<span style="color:#c19c00;">hello</span>',
+    ));
+
+Deno.test("supports 8-bit colorspace bright colors", async () =>
+    assertEquals(
+        await sgrToString("\x1B[48;5;10mhello"),
+        '<span style="background-color:#16c60c;">hello</span>',
+    ));
+
+Deno.test("supports 8-bit colorspace cube colors", async () =>
+    assertEquals(
+        await sgrToString("\x1B[38;5;182mhello"),
+        '<span style="color:rgb(204,153,204);">hello</span>',
+    ));
+
+Deno.test("supports 8-bit colorspace grayscale colors", async () =>
+    assertEquals(
+        await sgrToString("\x1B[48;5;243mhello"),
+        '<span style="background-color:rgb(121,121,121);">hello</span>',
+    ));
+
+Deno.test("supports 24-bit colorspace FG colors", async () =>
+    assertEquals(
+        await sgrToString("\x1B[38;2;100;255;100mhello"),
+        '<span style="color:rgb(100,255,100);">hello</span>',
+    ));
+
+Deno.test("supports 24-bit colorspace BG colors", async () =>
+    assertEquals(
+        await sgrToString("\x1B[48;2;42;42;242mhello"),
+        '<span style="background-color:rgb(42,42,242);">hello</span>',
+    ));
+
+Deno.test("bails out on missing colorspace", async () =>
+    assertEquals(
+        await sgrToString("\x1B[38mhello"),
+        "hello",
+    ));
+
+Deno.test("bails out on invalid colorspace", async () =>
+    assertEquals(
+        await sgrToString("\x1B[38;1mhello"),
+        "hello",
+    ));
+
+Deno.test("bails out on missing 8-bit colorspace parameter", async () =>
+    assertEquals(
+        await sgrToString("\x1B[38;5mhello"),
+        "hello",
+    ));
+
+Deno.test("bails out on invalid 8-bit colorspace parameter", async () =>
+    assertEquals(
+        await sgrToString("\x1B[38;5;420mhello"),
+        "hello",
+    ));
+
+Deno.test("bails out on missing 24-bit colorspace parameter", async () =>
+    assertEquals(
+        await sgrToString("\x1B[38;2;100mhello"),
+        "hello",
+    ));
+
+Deno.test("bails out on invalid 24-bit colorspace parameter", async () =>
+    assertEquals(
+        await sgrToString("\x1B[38;2;100;100;420mhello"),
+        "hello",
+    ));
+
 Deno.test("escapes html", async () =>
     assertEquals(
         await sgrToString("<\x1B[1mtag\x1B[0m attr='value with &'>"),

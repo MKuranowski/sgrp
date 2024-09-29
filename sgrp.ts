@@ -11,6 +11,8 @@ const htmlEscapes: Record<string, string> = {
 
 const htmlEscape = (x: string) => x.replaceAll(/[<>&'"]/g, (c) => htmlEscapes[c]);
 
+const isU8Number = (x: number) => x >= 0 && x <= 255 && Number.isSafeInteger(x);
+
 /**
  * Colors represents a set of css colors to use when converting ANSI SGR escape sequences
  * to HTML span elements.
@@ -310,8 +312,8 @@ class Parser {
 
     private parseSgrParameters(parameters: number[]): Style {
         const newStyle = this.#style.copy();
-        for (const parameter of parameters) {
-            switch (parameter) {
+        for (let i = 0; i < parameters.length; ++i) {
+            switch (parameters[i]) {
                 case 0:
                     newStyle.fontWeight = "";
                     break;
@@ -384,6 +386,16 @@ class Parser {
                     newStyle.color = this.palette.standard.white;
                     break;
 
+                case 38: {
+                    const result = this.parseCustomColor(parameters, i);
+                    if (result === null) {
+                        return newStyle;
+                    } else {
+                        [i, newStyle.color] = result;
+                    }
+                    break;
+                }
+
                 case 39:
                     newStyle.color = "";
                     break;
@@ -419,6 +431,16 @@ class Parser {
                 case 47:
                     newStyle.backgroundColor = this.palette.standard.white;
                     break;
+
+                case 48: {
+                    const result = this.parseCustomColor(parameters, i);
+                    if (result === null) {
+                        return newStyle;
+                    } else {
+                        [i, newStyle.backgroundColor] = result;
+                    }
+                    break;
+                }
 
                 case 49:
                     newStyle.backgroundColor = "";
@@ -493,6 +515,108 @@ class Parser {
             }
         }
         return newStyle;
+    }
+
+    private parseCustomColor(parameters: number[], i: number): [number, string] | null {
+        const mainParameter = parameters[i];
+
+        const colorspace = parameters.at(++i);
+        if (colorspace === undefined) {
+            console.error(`[sgrp]: Missing colorspace parameter (2 or 5) after ${mainParameter}`);
+            return null;
+        }
+
+        switch (colorspace) {
+            case 2: {
+                const r = parameters.at(++i);
+                const g = parameters.at(++i);
+                const b = parameters.at(++i);
+
+                if (r === undefined || g === undefined || b === undefined) {
+                    console.error(`[sgrp] Missing RGB values after SGR ${mainParameter};2`);
+                    return null;
+                }
+
+                if (!isU8Number(r)) {
+                    console.error(`[sgrp] Invalid red component: ${r}`);
+                    return null;
+                }
+
+                if (!isU8Number(g)) {
+                    console.error(`[sgrp] Invalid green component: ${r}`);
+                    return null;
+                }
+
+                if (!isU8Number(b)) {
+                    console.error(`[sgrp] Invalid blue component: ${r}`);
+                    return null;
+                }
+
+                return [i, `rgb(${r},${g},${b})`];
+            }
+
+            case 5: {
+                const v = parameters.at(++i);
+                if (v === undefined) {
+                    console.error(`[sgrp] Missing parameter after SGR ${mainParameter};5`);
+                    return null;
+                } else if (v === 0) {
+                    return [i, this.palette.standard.black];
+                } else if (v === 1) {
+                    return [i, this.palette.standard.red];
+                } else if (v === 2) {
+                    return [i, this.palette.standard.green];
+                } else if (v === 3) {
+                    return [i, this.palette.standard.yellow];
+                } else if (v === 4) {
+                    return [i, this.palette.standard.blue];
+                } else if (v === 5) {
+                    return [i, this.palette.standard.magenta];
+                } else if (v === 6) {
+                    return [i, this.palette.standard.cyan];
+                } else if (v === 7) {
+                    return [i, this.palette.standard.white];
+                } else if (v === 8) {
+                    return [i, this.palette.bright.black];
+                } else if (v === 9) {
+                    return [i, this.palette.bright.red];
+                } else if (v === 10) {
+                    return [i, this.palette.bright.green];
+                } else if (v === 11) {
+                    return [i, this.palette.bright.yellow];
+                } else if (v === 12) {
+                    return [i, this.palette.bright.blue];
+                } else if (v === 13) {
+                    return [i, this.palette.bright.magenta];
+                } else if (v === 14) {
+                    return [i, this.palette.bright.cyan];
+                } else if (v === 15) {
+                    return [i, this.palette.bright.white];
+                } else if (v >= 16 && v <= 231 && Number.isSafeInteger(v)) {
+                    let rest = v - 16;
+                    const b = (rest % 6) * 51;
+                    rest = (rest / 6) | 0;
+                    const g = (rest % 6) * 51;
+                    rest = (rest / 6) | 0;
+                    const r = (rest % 6) * 51;
+                    return [i, `rgb(${r},${g},${b})`];
+                } else if (v >= 232 && v <= 255 && Number.isSafeInteger(v)) {
+                    const c = (v - 232) * 11;
+                    return [i, `rgb(${c},${c},${c})`];
+                } else {
+                    console.error(
+                        `[sgrp] Invalid parameter after SGR ${mainParameter};5: ${v}`,
+                    );
+                    return null;
+                }
+            }
+
+            default:
+                console.error(
+                    `[sgrp]: Unknown colorspace ${colorspace} after SGR ${mainParameter}`,
+                );
+                return null;
+        }
     }
 
     private dumpUnknownCsi(): void {
