@@ -114,6 +114,10 @@ export const defaultPalette: Palette = {
     },
 };
 
+Object.freeze(defaultPalette.standard);
+Object.freeze(defaultPalette.bright);
+Object.freeze(defaultPalette);
+
 /**
  * Options customize the ANSI SGR to HTML span conversion process.
  *
@@ -756,7 +760,7 @@ export class SGRToElementSink extends Parser implements UnderlyingSink<string> {
      * @param {string} chunk
      * @param {WritableStreamDefaultController<string>} _controller
      */
-    write(chunk: string, _controller: WritableStreamDefaultController): void {
+    write(chunk: string, _controller?: WritableStreamDefaultController): void {
         this.push(chunk);
     }
 

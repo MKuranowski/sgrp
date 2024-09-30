@@ -1,4 +1,8 @@
 {
+  "name": "@mkuranowski/sgrp",
+  "version": "0.1.0",
+  "exports": "./sgrp.ts",
+  "license": "MIT",
   "tasks": {
     "bundle": "deno bundle sgrp.ts sgrp.js",
     "test_coverage": "deno test --coverage && deno coverage --html && xdg-open coverage/html/index.html"
