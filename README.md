@@ -28,7 +28,7 @@ await Deno.stdin.readable
 ### Frontend
 
 Download sgrp.js [Javascript module](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)
-from GitHub releases and put it in your server. This example below will load a colored terminal
+from [GitHub releases](https://github.com/MKuranowski/sgrp/releases) and put it in your server. This example below will load a colored terminal
 output file provided by the user and render it in a `<pre>` container:
 
 
