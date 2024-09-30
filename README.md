@@ -9,8 +9,8 @@ Usage
 
 ### Backend
 
-Import sgrp from JSR and use it in your code. Example [Deno](https://deno.com/) program to
-convert colored terminal output from stdin to HTML on stdout:
+Import [sgrp from JSR](https://jsr.io/@mkuranowski/sgrp) and use it in your code.
+Example [Deno](https://deno.com/) program to convert colored terminal output from stdin to HTML on stdout:
 
 ```typescript
 import { SGRToStringTransformer } from "jsr:@mkuranowski/sgrp";
