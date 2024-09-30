@@ -346,6 +346,11 @@ abstract class Parser {
             switch (parameters[i]) {
                 case 0:
                     newStyle.fontWeight = "";
+                    newStyle.fontStyle = "";
+                    newStyle.textDecorationLineThrough = false;
+                    newStyle.textDecorationUnderline = false;
+                    newStyle.color = "";
+                    newStyle.backgroundColor = "";
                     break;
 
                 case 1:
