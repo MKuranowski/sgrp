@@ -78,42 +78,42 @@ Only the following SGRs are supported. Everything else is silently ignored:
 | 23     | Not italic       | removed font-style                        | 3              |
 | 24     | Not underlined   | removed underline from text-decoration    | 4              |
 | 29     | Not crossed out  | removed line-through from text-decoration | 9              |
-| 30     | foreground black | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 31     | fg red           | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 32     | fg green         | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 33     | fg yellow        | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 34     | fg blue          | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 35     | fg magenta       | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 36     | fg cyan          | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 37     | fg white         | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 38     | fg custom        | set color; see below for details          | 0, 30~39, 90~97 |
-| 39     | default fg       | removed color                             | 0, 30~39, 90~97 |
-| 40     | background black | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 41     | bg red           | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 42     | bg green         | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 43     | bg yellow        | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 44     | bg blue          | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 45     | bg magenta       | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 46     | bg cyan          | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 47     | bg white         | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 48     | bg custom        | set background-color; see below for details | 0, 40~49, 100~107 |
-| 49     | default bg       | removed background-color                    | 0, 40~49, 100~107 |
-| 90     | fg bright black   | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 91     | fg bright red     | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 92     | fg bright green   | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 93     | fg bright yellow  | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 94     | fg bright blue    | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 95     | fg bright magenta | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 96     | fg bright cyan    | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 97     | fg bright white   | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30~39, 90~97 |
-| 100    | bg bright black   | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 101    | bg bright red     | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 102    | bg bright green   | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 103    | bg bright yellow  | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 104    | bg bright blue    | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 105    | bg bright magenta | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 106    | bg bright cyan    | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
-| 107    | bg bright white   | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40~49, 100~107 |
+| 30     | foreground black | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 31     | fg red           | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 32     | fg green         | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 33     | fg yellow        | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 34     | fg blue          | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 35     | fg magenta       | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 36     | fg cyan          | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 37     | fg white         | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 38     | fg custom        | set color; see below for details          | 0, 30-39, 90-97 |
+| 39     | default fg       | removed color                             | 0, 30-39, 90-97 |
+| 40     | background black | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 41     | bg red           | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 42     | bg green         | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 43     | bg yellow        | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 44     | bg blue          | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 45     | bg magenta       | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 46     | bg cyan          | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 47     | bg white         | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 48     | bg custom        | set background-color; see below for details | 0, 40-49, 100-107 |
+| 49     | default bg       | removed background-color                    | 0, 40-49, 100-107 |
+| 90     | fg bright black   | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 91     | fg bright red     | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 92     | fg bright green   | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 93     | fg bright yellow  | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 94     | fg bright blue    | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 95     | fg bright magenta | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 96     | fg bright cyan    | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 97     | fg bright white   | color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 30-39, 90-97 |
+| 100    | bg bright black   | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 101    | bg bright red     | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 102    | bg bright green   | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 103    | bg bright yellow  | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 104    | bg bright blue    | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 105    | bg bright magenta | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 106    | bg bright cyan    | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
+| 107    | bg bright white   | background-color: (value from [options](#options) or [defaultPalette](#defaultpalette)) | 0, 40-49, 100-107 |
 
 Parameters 38 and 48 must be followed by `5;n` or `2;r;g;b`, where n, r, g & b are integers
 between 0 and 255 (inclusive). Any missing or invalid parameters cause the 38/48 and all following
@@ -123,8 +123,8 @@ The format `2;r;b;g` cause color or background-color to be set to `rgb(r,g,b)`.
 
 The format `5;n` has different meanings depending on the value of n:
 
-- values 0 through 7 have the same meaning as "set standard color" (parameters 30~37/40~47);
-- values 8 through 15 have the same meaning as "set bright color" (parameters 90~97/100~107);
+- values 0 through 7 have the same meaning as "set standard color" (parameters 30-37/40-47);
+- values 8 through 15 have the same meaning as "set bright color" (parameters 90-97/100-107);
 - values 16 though 231 select a colors from [a 6x6x6 colors cube](http://www.alcyone.com/max/reference/compsci/cube.html),
     computed using this formula: `16 + 36r + 6g + b; 0 ≤ r, g, b ≤ 5`;
 - values 232 though 255 select a gray-scale color from #000000 to #fdfdfd,
