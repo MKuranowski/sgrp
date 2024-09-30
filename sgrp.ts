@@ -1,15 +1,54 @@
 // Copyright (c) 2024 Mikołaj Kuranowski
 // SPDX-License-Identifier: MIT
 
-const htmlEscapes: Record<string, string> = {
+// deno-lint-ignore-file no-control-regex
+
+const escapes: Record<string, string> = {
     "<": "&lt;",
     ">": "&gt;",
     "&": "&amp;",
     "'": "&#39;",
     '"': "&quot;",
+    "\x00": "\u2400",
+    "\x01": "\u2401",
+    "\x02": "\u2402",
+    "\x03": "\u2403",
+    "\x04": "\u2404",
+    "\x05": "\u2405",
+    "\x06": "\u2406",
+    "\x07": "\u2407",
+    // "\x08": "\u2408", // backspace
+    // "\x09": "\u2409", // tab
+    // "\x0A": "\u240A", // newline
+    // "\x0B": "\u240B", // vertical tab
+    // "\x0C": "\u240C", // form feed
+    // "\x0D": "\u240D", // carriage return
+    "\x0E": "\u240E",
+    "\x0F": "\u240F",
+    "\x10": "\u2410",
+    "\x11": "\u2411",
+    "\x12": "\u2412",
+    "\x13": "\u2413",
+    "\x14": "\u2414",
+    "\x15": "\u2415",
+    "\x16": "\u2416",
+    "\x17": "\u2417",
+    "\x18": "\u2418",
+    "\x19": "\u2419",
+    "\x1A": "\u241A",
+    "\x1B": "\u241B",
+    "\x1C": "\u241C",
+    "\x1D": "\u241D",
+    "\x1E": "\u241E",
+    "\x1F": "\u241F",
 };
 
-const htmlEscape = (x: string) => x.replaceAll(/[<>&'"]/g, (c) => htmlEscapes[c]);
+const escapeControl = (x: string) => x.replaceAll(/[\x00-\x07\x0E-\x1F]/g, (c) => escapes[c]);
+
+const escapeControlHtml = (x: string) =>
+    x.replaceAll(/[\x00-\x07\x0E-\x1F<>&'"]/g, (c) => escapes[c]);
+
+const escapeHtml = (x: string) => x.replaceAll(/[<>&'"]/g, (c) => escapes[c]);
 
 const isU8Number = (x: number) => x >= 0 && x <= 255 && Number.isSafeInteger(x);
 
@@ -121,11 +160,19 @@ Object.freeze(defaultPalette);
 /**
  * Options customize the ANSI SGR to HTML span conversion process.
  *
+ * palette overrides colors from {@link defaultPalette}.
+ *
+ * escapeControlCodes, if set to true, will cause control codes \x00-\x07 and \x0E-\x1F
+ * to be replaced by corresponding [control pictures](https://en.wikipedia.org/wiki/Control_Pictures)
+ * (U+2400-U+241F).
+ *
  * @typedef {object} Options
  * @property {PartialPalette} [palette]
+ * @property {boolean} [escapeControlCodes=false]
  */
 export interface Options {
     palette?: PartialPalette;
+    escapeControlCodes?: boolean;
 }
 
 class Style {
@@ -672,6 +719,7 @@ abstract class Parser {
 export class SGRToStringTransformer extends Parser implements Transformer<string, string> {
     #controller: TransformStreamDefaultController<string> | null = null;
     #inSpan: boolean = false;
+    #escaper: (_: string) => string;
 
     /**
      * Constructs a new SGRToStringTransformer.
@@ -680,6 +728,7 @@ export class SGRToStringTransformer extends Parser implements Transformer<string
      */
     constructor(options: Options = {}) {
         super(options);
+        this.#escaper = options.escapeControlCodes ? escapeControlHtml : escapeHtml;
     }
 
     /**
@@ -720,7 +769,7 @@ export class SGRToStringTransformer extends Parser implements Transformer<string
     }
 
     protected onText(t: string): void {
-        this.#controller!.enqueue(htmlEscape(t));
+        this.#controller!.enqueue(this.#escaper(t));
     }
 
     protected onStyleChange(s: Style): void {
@@ -746,6 +795,7 @@ export class SGRToStringTransformer extends Parser implements Transformer<string
  */
 export class SGRToElementSink extends Parser implements UnderlyingSink<string> {
     #currentSpan: HTMLSpanElement;
+    #escapeControlCodes: boolean;
 
     /**
      * Constructs a new SGRToElementSink
@@ -756,6 +806,7 @@ export class SGRToElementSink extends Parser implements UnderlyingSink<string> {
     constructor(public element: Node, options: Options = {}) {
         super(options);
         this.#currentSpan = this.element.appendChild(document.createElement("span"));
+        this.#escapeControlCodes = options.escapeControlCodes ?? false;
     }
 
     /**
@@ -790,7 +841,7 @@ export class SGRToElementSink extends Parser implements UnderlyingSink<string> {
     }
 
     protected onText(t: string): void {
-        this.#currentSpan.appendChild(new Text(t));
+        this.#currentSpan.appendChild(new Text(this.#escapeControlCodes ? escapeControl(t) : t));
     }
 
     protected onStyleChange(s: Style): void {

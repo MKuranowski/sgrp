@@ -227,6 +227,12 @@ Deno.test("escapes html", async () =>
         '&lt;<span style="font-weight:bolder;">tag</span> attr=&#39;value with &amp;&#39;&gt;',
     ));
 
+Deno.test("doesn't escape control codes by default", async () =>
+    assertEquals(await sgrToString("\x07ding"), "\x07ding"));
+
+Deno.test("escapes control codes by default", async () =>
+    assertEquals(await sgrToString("\x07ding", { escapeControlCodes: true }), "\u2407ding"));
+
 Deno.test("flushes terminal escapes", async () =>
     assertEquals(
         await sgrToString("hello, \x1B"),

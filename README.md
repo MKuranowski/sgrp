@@ -192,9 +192,16 @@ interface PartialPalette {
 
 Options customize the ANSI SGR to HTML span conversion process.
 
+`palette` overrides colors from [defaultPalette](#defaultpalette).
+
+`escapeControlCodes`, if set to true, will cause control codes \x00-\x07 and \x0E-\x1F
+to be replaced by corresponding [control pictures](https://en.wikipedia.org/wiki/Control_Pictures)
+(U+2400-U+241F).
+
 ```typescript
 interface Options {
     palette?: PartialPalette;
+    escapeControlCodes?: boolean;
 }
 ```
 
