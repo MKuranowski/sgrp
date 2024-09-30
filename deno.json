@@ -1,6 +1,6 @@
 {
   "name": "@mkuranowski/sgrp",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "exports": "./sgrp.ts",
   "license": "MIT",
   "tasks": {
